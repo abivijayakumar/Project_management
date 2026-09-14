@@ -20,10 +20,10 @@ const LoadingSpinner = ({ text = 'Loading...', size = 'default' }) => {
       color: 'var(--text-secondary)'
     }}>
       <svg
+        className="animate-spin"
         style={{
           width: dim,
-          height: dim,
-          animation: 'spin 0.8s linear infinite'
+          height: dim
         }}
         viewBox="0 0 24 24"
         fill="none"
@@ -48,14 +48,9 @@ const LoadingSpinner = ({ text = 'Loading...', size = 'default' }) => {
           {text}
         </span>
       )}
-      <style>{`
-        @keyframes spin {
-          0% { transform: rotate(0deg); }
-          100% { transform: rotate(360deg); }
-        }
-      `}</style>
     </div>
   );
 };
 
+export { LoadingSpinner };
 export default LoadingSpinner;
