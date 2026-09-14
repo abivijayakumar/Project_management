@@ -163,7 +163,7 @@ const Dashboard = () => {
       </div>
 
       {/* Split Recent Section: Recent Projects & Recent Tasks */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '1.5rem' }}>
+      <div className="grid-dashboard-split">
         {/* Recent Projects Widget */}
         <div className="card">
           <div style={{
@@ -198,6 +198,8 @@ const Dashboard = () => {
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'space-between',
+                    flexWrap: 'wrap',
+                    gap: '0.65rem',
                     padding: '0.85rem 1.15rem',
                     background: 'var(--bg-subtle)',
                     borderRadius: 'var(--radius-md)',
@@ -205,14 +207,21 @@ const Dashboard = () => {
                     transition: 'border-color var(--transition-fast)'
                   }}
                 >
-                  <div>
+                  <div style={{ minWidth: '150px', flex: '1 1 180px' }}>
                     <Link
                       to={`/projects/${p._id}`}
-                      style={{ fontWeight: 600, color: 'var(--text-primary)', fontSize: '0.95rem' }}
+                      style={{
+                        fontWeight: 600,
+                        color: 'var(--text-primary)',
+                        fontSize: '0.925rem',
+                        lineHeight: 1.35,
+                        display: 'block',
+                        wordBreak: 'break-word'
+                      }}
                     >
                       {p.name}
                     </Link>
-                    <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '0.15rem' }}>
+                    <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '0.2rem' }}>
                       Created {formatDate(p.createdAt)}
                     </div>
                   </div>
@@ -257,6 +266,8 @@ const Dashboard = () => {
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'space-between',
+                    flexWrap: 'wrap',
+                    gap: '0.65rem',
                     padding: '0.85rem 1.15rem',
                     background: 'var(--bg-subtle)',
                     borderRadius: 'var(--radius-md)',
@@ -264,21 +275,22 @@ const Dashboard = () => {
                     transition: 'border-color var(--transition-fast)'
                   }}
                 >
-                  <div style={{ minWidth: 0, flex: 1, marginRight: '0.75rem' }}>
+                  <div style={{ minWidth: '150px', flex: '1 1 180px' }}>
                     <div style={{
                       fontWeight: 600,
-                      fontSize: '0.95rem',
-                      whiteSpace: 'nowrap',
-                      overflow: 'hidden',
-                      textOverflow: 'ellipsis'
+                      fontSize: '0.925rem',
+                      lineHeight: 1.35,
+                      color: 'var(--text-primary)',
+                      wordBreak: 'break-word',
+                      marginBottom: '0.2rem'
                     }}>
                       {t.name}
                     </div>
-                    <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '0.15rem' }}>
+                    <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', lineHeight: 1.3 }}>
                       {t.projectId?.name || 'Project'} • Due {formatDate(t.dueDate)}
                     </div>
                   </div>
-                  <div style={{ display: 'flex', gap: '0.4rem', flexShrink: 0 }}>
+                  <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap', alignItems: 'center' }}>
                     <StatusBadge status={t.status} />
                     <PriorityBadge priority={t.priority} />
                   </div>
