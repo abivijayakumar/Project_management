@@ -5,7 +5,7 @@ const path = require('path');
 let sequelizeInstance = null;
 
 /**
- * Initialize Sequelize database connection (MySQL with automatic SQLite dev fallback)
+ * Initialize Sequelize database connection (MySQL / TiDB Cloud with automatic SQLite dev fallback)
  */
 async function initDatabase() {
   if (sequelizeInstance) return sequelizeInstance;
@@ -15,25 +15,33 @@ async function initDatabase() {
   const DB_PASSWORD = process.env.DB_PASSWORD || '';
   const DB_HOST = process.env.DB_HOST || '127.0.0.1';
   const DB_PORT = parseInt(process.env.DB_PORT, 10) || 3306;
+  const useSSL = process.env.DB_SSL === 'true' || (DB_HOST !== 'localhost' && DB_HOST !== '127.0.0.1');
 
   let forceSqlite = process.env.DB_DIALECT === 'sqlite';
 
   if (!forceSqlite) {
     try {
       console.log(`[Database] Attempting MySQL connection to ${DB_HOST}:${DB_PORT} (user: ${DB_USER})...`);
-      const connection = await mysql.createConnection({
+      
+      const connConfig = {
         host: DB_HOST,
         port: DB_PORT,
         user: DB_USER,
         password: DB_PASSWORD
-      });
+      };
+
+      if (useSSL) {
+        connConfig.ssl = { minVersion: 'TLSv1.2', rejectUnauthorized: true };
+      }
+
+      const connection = await mysql.createConnection(connConfig);
 
       await connection.query(
         `CREATE DATABASE IF NOT EXISTS \`${DB_NAME}\` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;`
       );
       await connection.end();
 
-      sequelizeInstance = new Sequelize(DB_NAME, DB_USER, DB_PASSWORD, {
+      const sequelizeOptions = {
         host: DB_HOST,
         port: DB_PORT,
         dialect: 'mysql',
@@ -48,16 +56,26 @@ async function initDatabase() {
           timestamps: true,
           underscored: false
         }
-      });
+      };
+
+      if (useSSL) {
+        sequelizeOptions.dialectOptions = {
+          ssl: {
+            minVersion: 'TLSv1.2',
+            rejectUnauthorized: true
+          }
+        };
+      }
+
+      sequelizeInstance = new Sequelize(DB_NAME, DB_USER, DB_PASSWORD, sequelizeOptions);
 
       await sequelizeInstance.authenticate();
-      console.log(`[Database] Connected successfully to MySQL: '${DB_NAME}' at ${DB_HOST}:${DB_PORT}`);
+      console.log(`[Database] Connected successfully to Cloud MySQL (TiDB): '${DB_NAME}' at ${DB_HOST}:${DB_PORT}`);
       return sequelizeInstance;
     } catch (mysqlErr) {
       console.warn(`\n⚠️ [MySQL Connection Notice] Could not connect to MySQL: ${mysqlErr.message}`);
       if (process.env.NODE_ENV !== 'production') {
         console.warn('💡 [Fallback Active] Starting with local SQLite (backend/dev-storage.sqlite) so the app works immediately.');
-        console.warn('💡 To use MySQL: Enter your root password in backend/.env (DB_PASSWORD=your_password) and restart.\n');
         forceSqlite = true;
       } else {
         throw mysqlErr;
@@ -84,7 +102,6 @@ async function initDatabase() {
 
 function getSequelize() {
   if (!sequelizeInstance) {
-    // If accessed before initDatabase, initialize fallback instance
     const storagePath = path.join(__dirname, '../../dev-storage.sqlite');
     sequelizeInstance = new Sequelize({
       dialect: 'sqlite',
