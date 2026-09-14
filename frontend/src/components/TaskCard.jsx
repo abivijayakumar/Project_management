@@ -83,8 +83,9 @@ const TaskCard = ({ task, onToggleStatus, onEdit, onDelete }) => {
                 gap: '0.3rem',
                 fontSize: '0.8rem',
                 color: 'var(--text-secondary)',
-                background: 'rgba(255, 255, 255, 0.04)',
-                padding: '0.2rem 0.6rem',
+                background: 'var(--bg-subtle)',
+                border: '1px solid var(--border-subtle)',
+                padding: '0.2rem 0.65rem',
                 borderRadius: 'var(--radius-sm)'
               }}
             >

@@ -33,7 +33,7 @@ const LoadingSpinner = ({ text = 'Loading...', size = 'default' }) => {
           cx="12"
           cy="12"
           r="10"
-          stroke="rgba(255, 255, 255, 0.15)"
+          stroke="#e2e8f0"
           strokeWidth="3"
         />
         <path

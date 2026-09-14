@@ -100,8 +100,8 @@ const Dashboard = () => {
             <div className="stat-value">{totalProjects}</div>
             <div className="stat-title">Total Projects</div>
           </div>
-          <div className="stat-icon-wrapper" style={{ color: '#818cf8' }}>
-            <FolderKanban size={26} />
+          <div className="stat-icon-wrapper" style={{ background: '#e0e7ff', color: '#4f46e5' }}>
+            <FolderKanban size={24} />
           </div>
         </div>
 
@@ -110,8 +110,8 @@ const Dashboard = () => {
             <div className="stat-value">{projectsInProgress}</div>
             <div className="stat-title">Projects In Progress</div>
           </div>
-          <div className="stat-icon-wrapper" style={{ color: '#fbbf24' }}>
-            <PlayCircle size={26} />
+          <div className="stat-icon-wrapper" style={{ background: '#fef3c7', color: '#d97706' }}>
+            <PlayCircle size={24} />
           </div>
         </div>
 
@@ -120,28 +120,28 @@ const Dashboard = () => {
             <div className="stat-value">{totalTasks}</div>
             <div className="stat-title">Total Tasks</div>
           </div>
-          <div className="stat-icon-wrapper" style={{ color: '#38bdf8' }}>
-            <CheckSquare size={26} />
+          <div className="stat-icon-wrapper" style={{ background: '#e0f2fe', color: '#0284c7' }}>
+            <CheckSquare size={24} />
           </div>
         </div>
 
         <div className="stat-card">
           <div>
-            <div className="stat-value" style={{ color: '#34d399' }}>{completedTasks}</div>
+            <div className="stat-value" style={{ color: '#047857' }}>{completedTasks}</div>
             <div className="stat-title">Completed Tasks</div>
           </div>
-          <div className="stat-icon-wrapper" style={{ color: '#34d399' }}>
-            <TrendingUp size={26} />
+          <div className="stat-icon-wrapper" style={{ background: '#ecfdf5', color: '#047857' }}>
+            <TrendingUp size={24} />
           </div>
         </div>
 
         <div className="stat-card">
           <div>
-            <div className="stat-value" style={{ color: '#cbd5e1' }}>{pendingTasks}</div>
+            <div className="stat-value" style={{ color: '#475569' }}>{pendingTasks}</div>
             <div className="stat-title">Pending Tasks</div>
           </div>
-          <div className="stat-icon-wrapper" style={{ color: '#94a3b8' }}>
-            <Clock size={26} />
+          <div className="stat-icon-wrapper" style={{ background: '#f1f5f9', color: '#64748b' }}>
+            <Clock size={24} />
           </div>
         </div>
       </div>
@@ -150,14 +150,14 @@ const Dashboard = () => {
       <div className="card" style={{ marginBottom: '2rem' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
           <h3 style={{ fontSize: '1.1rem' }}>Task Completion Rate</h3>
-          <span style={{ fontSize: '1.25rem', fontWeight: 700, color: '#818cf8' }}>
+          <span style={{ fontSize: '1.25rem', fontWeight: 700, color: 'var(--accent-primary)' }}>
             {taskCompletionRate}%
           </span>
         </div>
-        <div className="progress-bar-container" style={{ height: '12px' }}>
+        <div className="progress-bar-container" style={{ height: '10px' }}>
           <div className="progress-bar-fill" style={{ width: `${taskCompletionRate}%` }} />
         </div>
-        <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem', marginTop: '0.5rem' }}>
+        <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem', marginTop: '0.5rem', fontWeight: 500 }}>
           {completedTasks} of {totalTasks} total tasks completed across all projects
         </p>
       </div>
@@ -198,10 +198,11 @@ const Dashboard = () => {
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'space-between',
-                    padding: '0.75rem 1rem',
-                    background: 'rgba(255, 255, 255, 0.02)',
+                    padding: '0.85rem 1.15rem',
+                    background: 'var(--bg-subtle)',
                     borderRadius: 'var(--radius-md)',
-                    border: '1px solid var(--border-subtle)'
+                    border: '1px solid var(--border-subtle)',
+                    transition: 'border-color var(--transition-fast)'
                   }}
                 >
                   <div>
@@ -256,10 +257,11 @@ const Dashboard = () => {
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'space-between',
-                    padding: '0.75rem 1rem',
-                    background: 'rgba(255, 255, 255, 0.02)',
+                    padding: '0.85rem 1.15rem',
+                    background: 'var(--bg-subtle)',
                     borderRadius: 'var(--radius-md)',
-                    border: '1px solid var(--border-subtle)'
+                    border: '1px solid var(--border-subtle)',
+                    transition: 'border-color var(--transition-fast)'
                   }}
                 >
                   <div style={{ minWidth: 0, flex: 1, marginRight: '0.75rem' }}>

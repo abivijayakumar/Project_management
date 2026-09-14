@@ -21,8 +21,8 @@ const ConfirmDialog = ({
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
             {isDanger && (
               <div style={{
-                color: '#f87171',
-                background: 'rgba(239, 68, 68, 0.15)',
+                color: '#dc2626',
+                background: '#fee2e2',
                 padding: '6px',
                 borderRadius: '8px',
                 display: 'flex'

@@ -210,11 +210,13 @@ const ProjectDetails = () => {
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
           <h2 style={{ fontSize: '1.4rem' }}>Project Tasks</h2>
           <span style={{
-            background: 'rgba(255, 255, 255, 0.08)',
-            padding: '2px 8px',
+            background: 'var(--bg-subtle)',
+            color: 'var(--text-secondary)',
+            border: '1px solid var(--border-subtle)',
+            padding: '2px 10px',
             borderRadius: '12px',
             fontSize: '0.85rem',
-            fontWeight: 600
+            fontWeight: 700
           }}>
             {filteredTasks.length}
           </span>
