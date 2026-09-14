@@ -50,10 +50,10 @@ const Navbar = ({ onToggleSidebar }) => {
               {getInitials(user.fullName)}
             </div>
             <div style={{ display: 'flex', flexDirection: 'column' }}>
-              <span style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-primary)', lineHeight: 1.2 }}>
+              <span className="user-name" style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-primary)', lineHeight: 1.2 }}>
                 {user.fullName}
               </span>
-              <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+              <span className="user-email" style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
                 {user.email}
               </span>
             </div>
@@ -62,7 +62,7 @@ const Navbar = ({ onToggleSidebar }) => {
 
         <button
           onClick={logout}
-          className="btn btn-secondary btn-sm"
+          className="btn btn-secondary btn-sm navbar-logout-btn"
           title="Sign out"
           style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}
         >
