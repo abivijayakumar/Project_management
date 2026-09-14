@@ -14,25 +14,23 @@ const errorHandler = (err, req, res, next) => {
   let statusCode = err.statusCode || (res.statusCode !== 200 ? res.statusCode : 500);
   let message = err.message || 'Internal Server Error';
 
-  // Handle Mongoose Bad ObjectId (CastError)
-  if (err.name === 'CastError' && err.kind === 'ObjectId') {
-    statusCode = 400;
-    message = 'Resource not found or invalid ID format';
-  }
-
-  // Handle Mongoose duplicate key error
-  if (err.code === 11000) {
+  // Handle Sequelize Unique Constraint Error (e.g. duplicate email)
+  if (err.name === 'SequelizeUniqueConstraintError') {
     statusCode = 409;
-    const field = Object.keys(err.keyValue || {})[0] || 'field';
+    const field = err.errors && err.errors[0] ? err.errors[0].path : 'field';
     message = `${field.charAt(0).toUpperCase() + field.slice(1)} already exists`;
   }
 
-  // Handle Mongoose validation errors
-  if (err.name === 'ValidationError') {
+  // Handle Sequelize Validation Errors
+  if (err.name === 'SequelizeValidationError') {
     statusCode = 400;
-    message = Object.values(err.errors)
-      .map((val) => val.message)
-      .join(', ');
+    message = err.errors.map(e => e.message).join(', ');
+  }
+
+  // Handle Sequelize Foreign Key Errors
+  if (err.name === 'SequelizeForeignKeyConstraintError') {
+    statusCode = 400;
+    message = 'Referenced record does not exist';
   }
 
   // Handle JWT errors

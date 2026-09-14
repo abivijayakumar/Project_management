@@ -1,57 +1,68 @@
-const mongoose = require('mongoose');
+const { DataTypes } = require('sequelize');
+const { getSequelize } = require('../config/database');
 
-const projectSchema = new mongoose.Schema(
-  {
-    userId: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: 'User',
-      required: [true, 'User ID is required'],
-      index: true
-    },
-    name: {
-      type: String,
-      required: [true, 'Project name is required'],
-      trim: true,
-      maxlength: [150, 'Project name cannot exceed 150 characters']
-    },
-    description: {
-      type: String,
-      default: '',
-      trim: true,
-      maxlength: [2000, 'Description cannot exceed 2000 characters']
-    },
-    status: {
-      type: String,
-      enum: {
-        values: ['Not Started', 'In Progress', 'Completed'],
-        message: '{VALUE} is not a valid project status'
-      },
-      default: 'Not Started',
-      index: true
-    },
-    startDate: {
-      type: Date
-    },
-    endDate: {
-      type: Date
+const sequelize = getSequelize();
+
+const Project = sequelize.define('Project', {
+  id: {
+    type: DataTypes.INTEGER,
+    primaryKey: true,
+    autoIncrement: true
+  },
+  userId: {
+    type: DataTypes.INTEGER,
+    allowNull: false,
+    references: {
+      model: 'users',
+      key: 'id'
     }
   },
-  {
-    timestamps: true,
-    toJSON: {
-      transform: function (doc, ret) {
-        delete ret.__v;
-        return ret;
-      }
+  name: {
+    type: DataTypes.STRING(150),
+    allowNull: false,
+    validate: {
+      notEmpty: { msg: 'Project name is required' },
+      len: { args: [1, 150], msg: 'Project name cannot exceed 150 characters' }
+    }
+  },
+  description: {
+    type: DataTypes.TEXT,
+    defaultValue: ''
+  },
+  status: {
+    type: DataTypes.ENUM('Not Started', 'In Progress', 'Completed'),
+    defaultValue: 'Not Started',
+    allowNull: false
+  },
+  startDate: {
+    type: DataTypes.DATE,
+    allowNull: true
+  },
+  endDate: {
+    type: DataTypes.DATE,
+    allowNull: true
+  },
+  _id: {
+    type: DataTypes.VIRTUAL,
+    get() {
+      const id = this.getDataValue('id');
+      return id != null ? id.toString() : null;
     }
   }
-);
+}, {
+  tableName: 'projects',
+  timestamps: true,
+  indexes: [
+    { fields: ['userId', 'status'] },
+    { fields: ['userId', 'createdAt'] },
+    { fields: ['userId', 'name'] }
+  ]
+});
 
-// Compound indexes for user scoped filtering and searching
-projectSchema.index({ userId: 1, status: 1 });
-projectSchema.index({ userId: 1, createdAt: -1 });
-projectSchema.index({ userId: 1, name: 1 });
-
-const Project = mongoose.model('Project', projectSchema);
+Project.prototype.toJSON = function () {
+  const values = { ...this.get() };
+  values._id = values.id != null ? values.id.toString() : null;
+  return values;
+};
 
 module.exports = Project;

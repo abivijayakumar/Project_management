@@ -1,41 +1,29 @@
-const mongoose = require('mongoose');
-const fs = require('fs');
 const path = require('path');
 require('dotenv').config({ path: path.join(__dirname, '../.env') });
 
-const User = require('../src/models/User');
-const Project = require('../src/models/Project');
-const Task = require('../src/models/Task');
+const { initDatabase, sequelize } = require('../src/config/database');
+const { User, Project, Task } = require('../src/models');
 
 async function inspect() {
-  let uri = process.env.MONGODB_URI;
-
-  // Check if active dynamic URI exists
-  const activeUriPath = path.join(__dirname, '../.active-db-uri');
-  if (fs.existsSync(activeUriPath)) {
-    const savedUri = fs.readFileSync(activeUriPath, 'utf8').trim();
-    if (savedUri) uri = savedUri;
-  }
-
-  if (!uri) {
-    uri = 'mongodb://127.0.0.1:27017/project_management';
-  }
+  const DB_NAME = process.env.DB_NAME || 'project_management';
+  const DB_HOST = process.env.DB_HOST || '127.0.0.1';
+  const DB_PORT = process.env.DB_PORT || 3306;
 
   console.log('====================================================');
-  console.log('🔍 Pulse Database Inspector');
-  console.log(`📡 Connecting to: ${uri}`);
+  console.log('🔍 Pulse Database Inspector (MySQL / Relational)');
+  console.log(`📡 Connecting to: ${DB_NAME} at ${DB_HOST}:${DB_PORT}`);
   console.log('====================================================\n');
 
-  await mongoose.connect(uri, { serverSelectionTimeoutMS: 5000 });
+  await initDatabase();
 
   // 1. Users
-  const users = await User.find({}).lean();
+  const users = await User.findAll({ order: [['id', 'ASC']] });
   console.log(`👤 USERS (${users.length} total):`);
   if (users.length === 0) {
     console.log('   (No users found in database)');
   } else {
     console.table(users.map(u => ({
-      ID: u._id.toString(),
+      ID: u.id,
       Name: u.fullName,
       Email: u.email,
       'Created At': new Date(u.createdAt).toLocaleString()
@@ -44,16 +32,19 @@ async function inspect() {
   console.log('\n');
 
   // 2. Projects
-  const projects = await Project.find({}).populate('userId', 'email fullName').lean();
+  const projects = await Project.findAll({
+    include: [{ model: User, as: 'user', attributes: ['email', 'fullName'] }],
+    order: [['id', 'ASC']]
+  });
   console.log(`📁 PROJECTS (${projects.length} total):`);
   if (projects.length === 0) {
     console.log('   (No projects found in database)');
   } else {
     console.table(projects.map(p => ({
-      ID: p._id.toString(),
+      ID: p.id,
       Name: p.name,
       Status: p.status,
-      Owner: p.userId?.email || p.userId?.toString() || 'Unknown',
+      Owner: p.user ? p.user.email : `User #${p.userId}`,
       'Start Date': p.startDate ? new Date(p.startDate).toLocaleDateString() : 'N/A',
       'End Date': p.endDate ? new Date(p.endDate).toLocaleDateString() : 'N/A'
     })));
@@ -61,15 +52,18 @@ async function inspect() {
   console.log('\n');
 
   // 3. Tasks
-  const tasks = await Task.find({}).populate('projectId', 'name').lean();
+  const tasks = await Task.findAll({
+    include: [{ model: Project, as: 'project', attributes: ['name'] }],
+    order: [['id', 'ASC']]
+  });
   console.log(`📋 TASKS (${tasks.length} total):`);
   if (tasks.length === 0) {
     console.log('   (No tasks found in database)');
   } else {
     console.table(tasks.map(t => ({
-      ID: t._id.toString(),
+      ID: t.id,
       Name: t.name,
-      Project: t.projectId?.name || t.projectId?.toString() || 'Unknown',
+      Project: t.project ? t.project.name : `Project #${t.projectId}`,
       Status: t.status,
       Priority: t.priority,
       'Due Date': t.dueDate ? new Date(t.dueDate).toLocaleDateString() : 'N/A'
@@ -77,11 +71,10 @@ async function inspect() {
   }
   console.log('====================================================');
 
-  await mongoose.connection.close();
+  await sequelize.close();
 }
 
 inspect().catch(err => {
   console.error('\n❌ Could not connect to database:', err.message);
-  console.log('Make sure the backend server is running or MongoDB is active.');
   process.exit(1);
 });

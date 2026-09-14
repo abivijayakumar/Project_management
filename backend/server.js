@@ -1,42 +1,19 @@
 require('dotenv').config();
 const app = require('./app');
-const mongoose = require('mongoose');
+const { initDatabase, sequelize } = require('./src/config/database');
+
+// Ensure models and associations are registered
+require('./src/models');
 
 const PORT = process.env.PORT || 5000;
 
 const startServer = async () => {
-  let mongoURI = process.env.MONGODB_URI;
-
   try {
-    if (!mongoURI) {
-      mongoURI = 'mongodb://127.0.0.1:27017/project_management';
-    }
-
-    // Attempt primary connection
-    console.log(`[MongoDB] Connecting to: ${mongoURI.replace(/:\/\/([^:]+):([^@]+)@/, '://$1:****@')}...`);
-    await mongoose.connect(mongoURI, {
-      serverSelectionTimeoutMS: 4000
-    });
-    console.log('[MongoDB] Connected successfully to database');
+    // Initialize connection and sync tables
+    await initDatabase();
   } catch (err) {
-    console.warn(`[MongoDB] Warning: Could not connect to primary MongoDB (${err.message})`);
-
-    // In development, attempt to spin up an in-memory MongoDB fallback
-    if (process.env.NODE_ENV !== 'production') {
-      try {
-        console.log('[MongoDB] Initializing in-memory MongoDB instance for local demonstration...');
-        const { MongoMemoryServer } = require('mongodb-memory-server');
-        const mongod = await MongoMemoryServer.create();
-        const memUri = mongod.getUri();
-        await mongoose.connect(memUri);
-        console.log(`[MongoDB] Connected successfully to in-memory fallback: ${memUri}`);
-      } catch (memErr) {
-        console.error('[MongoDB Fatal] In-memory fallback failed:', memErr.message);
-        process.exit(1);
-      }
-    } else {
-      process.exit(1);
-    }
+    console.error('[Server Startup Aborted] Database initialization failed. Exiting process.');
+    process.exit(1);
   }
 
   const server = app.listen(PORT, () => {
@@ -48,8 +25,12 @@ const startServer = async () => {
   const shutdown = async () => {
     console.log('\n[Server] Gracefully shutting down...');
     server.close(async () => {
-      await mongoose.connection.close();
-      console.log('[MongoDB] Connection closed. Exiting process.');
+      try {
+        await sequelize.close();
+        console.log('[Database] Connection closed successfully. Exiting process.');
+      } catch (closeErr) {
+        console.error('[Database] Error closing connection:', closeErr.message);
+      }
       process.exit(0);
     });
   };

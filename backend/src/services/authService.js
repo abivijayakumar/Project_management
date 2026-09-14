@@ -1,4 +1,4 @@
-const User = require('../models/User');
+const { User } = require('../models');
 const generateToken = require('../utils/generateToken');
 
 class AuthService {
@@ -7,7 +7,8 @@ class AuthService {
    * @param {Object} userData - { fullName, email, password }
    */
   async register({ fullName, email, password }) {
-    const existingUser = await User.findOne({ email: email.toLowerCase() });
+    const cleanEmail = email ? email.trim().toLowerCase() : '';
+    const existingUser = await User.findOne({ where: { email: cleanEmail } });
     if (existingUser) {
       const error = new Error('A user with this email address already exists');
       error.statusCode = 409;
@@ -16,15 +17,16 @@ class AuthService {
 
     const user = await User.create({
       fullName,
-      email: email.toLowerCase(),
+      email: cleanEmail,
       password
     });
 
-    const token = generateToken(user._id);
+    const token = generateToken(user.id);
 
     return {
       user: {
-        _id: user._id,
+        id: user.id,
+        _id: user.id.toString(),
         fullName: user.fullName,
         email: user.email,
         createdAt: user.createdAt
@@ -38,7 +40,8 @@ class AuthService {
    * @param {Object} credentials - { email, password }
    */
   async login({ email, password }) {
-    const user = await User.findOne({ email: email.toLowerCase() }).select('+password');
+    const cleanEmail = email ? email.trim().toLowerCase() : '';
+    const user = await User.findOne({ where: { email: cleanEmail } });
 
     if (!user || !(await user.matchPassword(password))) {
       const error = new Error('Invalid email or password');
@@ -46,11 +49,12 @@ class AuthService {
       throw error;
     }
 
-    const token = generateToken(user._id);
+    const token = generateToken(user.id);
 
     return {
       user: {
-        _id: user._id,
+        id: user.id,
+        _id: user.id.toString(),
         fullName: user.fullName,
         email: user.email,
         createdAt: user.createdAt
@@ -61,10 +65,12 @@ class AuthService {
 
   /**
    * Retrieve current user profile
-   * @param {string} userId
+   * @param {number|string} userId
    */
   async getProfile(userId) {
-    const user = await User.findById(userId).select('-password');
+    const user = await User.findByPk(userId, {
+      attributes: { exclude: ['password'] }
+    });
     if (!user) {
       const error = new Error('User not found');
       error.statusCode = 404;

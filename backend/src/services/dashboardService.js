@@ -1,25 +1,24 @@
-const mongoose = require('mongoose');
-const Project = require('../models/Project');
-const Task = require('../models/Task');
+const { fn, col, Op } = require('sequelize');
+const { Project, Task } = require('../models');
 
 class DashboardService {
   /**
    * Calculate aggregated statistics exclusively for the authenticated user
-   * @param {string|mongoose.Types.ObjectId} userId
+   * @param {number|string} userId
    */
   async getStats(userId) {
-    const userObjectId = new mongoose.Types.ObjectId(userId);
+    const userPk = parseInt(userId, 10) || userId;
 
     // Aggregate project metrics for this user
-    const projectStats = await Project.aggregate([
-      { $match: { userId: userObjectId } },
-      {
-        $group: {
-          _id: '$status',
-          count: { $sum: 1 }
-        }
-      }
-    ]);
+    const projectStats = await Project.findAll({
+      where: { userId: userPk },
+      attributes: [
+        'status',
+        [fn('COUNT', col('id')), 'count']
+      ],
+      group: ['status'],
+      raw: true
+    });
 
     let totalProjects = 0;
     let projectsInProgress = 0;
@@ -27,15 +26,20 @@ class DashboardService {
     let notStartedProjects = 0;
 
     projectStats.forEach(item => {
-      totalProjects += item.count;
-      if (item._id === 'In Progress') projectsInProgress = item.count;
-      if (item._id === 'Completed') completedProjects = item.count;
-      if (item._id === 'Not Started') notStartedProjects = item.count;
+      const count = parseInt(item.count, 10) || 0;
+      totalProjects += count;
+      if (item.status === 'In Progress') projectsInProgress = count;
+      if (item.status === 'Completed') completedProjects = count;
+      if (item.status === 'Not Started') notStartedProjects = count;
     });
 
     // Find all project IDs owned by this user
-    const userProjects = await Project.find({ userId: userObjectId }).select('_id').lean();
-    const projectIds = userProjects.map(p => p._id);
+    const userProjects = await Project.findAll({
+      where: { userId: userPk },
+      attributes: ['id'],
+      raw: true
+    });
+    const projectIds = userProjects.map(p => p.id);
 
     // Aggregate task metrics for tasks linked to user's projects
     let totalTasks = 0;
@@ -44,37 +48,48 @@ class DashboardService {
     let inProgressTasks = 0;
 
     if (projectIds.length > 0) {
-      const taskStats = await Task.aggregate([
-        { $match: { projectId: { $in: projectIds } } },
-        {
-          $group: {
-            _id: '$status',
-            count: { $sum: 1 }
-          }
-        }
-      ]);
+      const taskStats = await Task.findAll({
+        where: { projectId: { [Op.in]: projectIds } },
+        attributes: [
+          'status',
+          [fn('COUNT', col('id')), 'count']
+        ],
+        group: ['status'],
+        raw: true
+      });
 
       taskStats.forEach(item => {
-        totalTasks += item.count;
-        if (item._id === 'Completed') completedTasks = item.count;
-        if (item._id === 'Pending') pendingTasks = item.count;
-        if (item._id === 'In Progress') inProgressTasks = item.count;
+        const count = parseInt(item.count, 10) || 0;
+        totalTasks += count;
+        if (item.status === 'Completed') completedTasks = count;
+        if (item.status === 'Pending') pendingTasks = count;
+        if (item.status === 'In Progress') inProgressTasks = count;
       });
     }
 
-    // Also fetch 5 most recent projects and 5 upcoming/recent tasks for rich dashboard widgets
-    const recentProjects = await Project.find({ userId: userObjectId })
-      .sort({ createdAt: -1 })
-      .limit(5)
-      .lean();
+    // Fetch 5 most recent projects
+    const recentProjects = await Project.findAll({
+      where: { userId: userPk },
+      order: [['createdAt', 'DESC']],
+      limit: 5
+    });
 
+    // Fetch 5 most recent tasks
     let recentTasks = [];
     if (projectIds.length > 0) {
-      recentTasks = await Task.find({ projectId: { $in: projectIds } })
-        .populate('projectId', 'name')
-        .sort({ createdAt: -1 })
-        .limit(5)
-        .lean();
+      const fetchedTasks = await Task.findAll({
+        where: { projectId: { [Op.in]: projectIds } },
+        include: [
+          {
+            model: Project,
+            as: 'project',
+            attributes: ['id', 'name']
+          }
+        ],
+        order: [['createdAt', 'DESC']],
+        limit: 5
+      });
+      recentTasks = fetchedTasks.map(t => t.toJSON());
     }
 
     return {
@@ -83,11 +98,10 @@ class DashboardService {
       completedTasks,
       pendingTasks,
       projectsInProgress,
-      // Extended metrics for enhanced UI visualization
       completedProjects,
       notStartedProjects,
       inProgressTasks,
-      recentProjects,
+      recentProjects: recentProjects.map(p => p.toJSON()),
       recentTasks
     };
   }

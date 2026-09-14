@@ -1,18 +1,26 @@
 version: '3.8'
 
 services:
-  mongodb:
-    image: mongo:6.0
-    container_name: pulse-mongodb
+  mysql:
+    image: mysql:8.0
+    container_name: pulse-mysql
     restart: unless-stopped
     environment:
-      MONGO_INITDB_DATABASE: project_management
+      MYSQL_ROOT_PASSWORD: pulse_root_password_2026
+      MYSQL_DATABASE: project_management
+      MYSQL_USER: pulse_user
+      MYSQL_PASSWORD: pulse_password_2026
     ports:
-      - "27017:27017"
+      - "3306:3306"
     volumes:
-      - mongo_data:/data/db
+      - mysql_data:/var/lib/mysql
     networks:
       - pulse-network
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "pulse_user", "-ppulse_password_2026"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
 
   backend:
     build:
@@ -24,13 +32,18 @@ services:
       - "5000:5000"
     environment:
       PORT: 5000
-      MONGODB_URI: mongodb://mongodb:27017/project_management
+      DB_HOST: mysql
+      DB_PORT: 3306
+      DB_NAME: project_management
+      DB_USER: pulse_user
+      DB_PASSWORD: pulse_password_2026
       JWT_SECRET: production_jwt_secret_pulse_2026_super_secure
       JWT_EXPIRES_IN: 7d
       CLIENT_URL: http://localhost:8080
       NODE_ENV: production
     depends_on:
-      - mongodb
+      mysql:
+        condition: service_healthy
     networks:
       - pulse-network
 
@@ -48,7 +61,7 @@ services:
       - pulse-network
 
 volumes:
-  mongo_data:
+  mysql_data:
     driver: local
 
 networks:

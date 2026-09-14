@@ -1,6 +1,5 @@
-const Project = require('../models/Project');
-const Task = require('../models/Task');
-const { escapeRegex } = require('../utils/sanitize');
+const { Op, fn, col, literal } = require('sequelize');
+const { Project, Task } = require('../models');
 
 class ProjectService {
   /**
@@ -16,66 +15,70 @@ class ProjectService {
       limit = 50
     } = query;
 
-    // Base query scoped strictly to the authenticated user
-    const filter = { userId };
+    const where = { userId };
 
     if (search && search.trim()) {
-      const sanitized = escapeRegex(search.trim());
-      filter.name = { $regex: sanitized, $options: 'i' };
+      where.name = { [Op.like]: `%${search.trim()}%` };
     }
 
     if (status && ['Not Started', 'In Progress', 'Completed'].includes(status)) {
-      filter.status = status;
+      where.status = status;
     }
 
     const pageNum = Math.max(1, parseInt(page, 10) || 1);
     const limitNum = Math.max(1, Math.min(100, parseInt(limit, 10) || 50));
-    const skip = (pageNum - 1) * limitNum;
+    const offset = (pageNum - 1) * limitNum;
 
-    const sortOrder = order === 'asc' ? 1 : -1;
-    const sort = { [sortBy]: sortOrder };
+    // Validate sortBy column to prevent SQL injection
+    const allowedSortFields = ['createdAt', 'name', 'status', 'startDate', 'endDate', 'id'];
+    const sortField = allowedSortFields.includes(sortBy) ? sortBy : 'createdAt';
+    const sortDirection = order.toLowerCase() === 'asc' ? 'ASC' : 'DESC';
 
-    const [projects, total] = await Promise.all([
-      Project.find(filter)
-        .sort(sort)
-        .skip(skip)
-        .limit(limitNum)
-        .lean(),
-      Project.countDocuments(filter)
-    ]);
-
-    // Attach task count summaries for each project
-    const projectIds = projects.map(p => p._id);
-    const taskAggregations = await Task.aggregate([
-      { $match: { projectId: { $in: projectIds } } },
-      {
-        $group: {
-          _id: '$projectId',
-          totalTasks: { $sum: 1 },
-          completedTasks: {
-            $sum: { $cond: [{ $eq: ['$status', 'Completed'] }, 1, 0] }
-          }
-        }
-      }
-    ]);
-
-    const taskCountMap = {};
-    taskAggregations.forEach(item => {
-      taskCountMap[item._id.toString()] = {
-        totalTasks: item.totalTasks,
-        completedTasks: item.completedTasks
-      };
+    const { count: total, rows: projects } = await Project.findAndCountAll({
+      where,
+      order: [[sortField, sortDirection]],
+      limit: limitNum,
+      offset
     });
 
+    // Compute task counts and progress
+    const projectIds = projects.map(p => p.id);
+    let taskCountMap = {};
+
+    if (projectIds.length > 0) {
+      const taskAggregations = await Task.findAll({
+        where: { projectId: projectIds },
+        attributes: [
+          'projectId',
+          [fn('COUNT', col('id')), 'totalTasks'],
+          [fn('SUM', literal("CASE WHEN status = 'Completed' THEN 1 ELSE 0 END")), 'completedTasks']
+        ],
+        group: ['projectId'],
+        raw: true
+      });
+
+      taskAggregations.forEach(item => {
+        taskCountMap[item.projectId] = {
+          totalTasks: parseInt(item.totalTasks, 10) || 0,
+          completedTasks: parseInt(item.completedTasks, 10) || 0
+        };
+      });
+    }
+
     const enrichedProjects = projects.map(proj => {
-      const counts = taskCountMap[proj._id.toString()] || { totalTasks: 0, completedTasks: 0 };
+      const pJson = proj.toJSON();
+      const counts = taskCountMap[proj.id] || { totalTasks: 0, completedTasks: 0 };
+      const totalTasks = counts.totalTasks;
+      const completedTasks = counts.completedTasks;
+      const progressPercent = totalTasks > 0
+        ? Math.round((completedTasks / totalTasks) * 100)
+        : (proj.status === 'Completed' ? 100 : 0);
+
       return {
-        ...proj,
-        totalTasks: counts.totalTasks,
-        completedTasks: counts.completedTasks,
-        progressPercent: counts.totalTasks > 0 
-          ? Math.round((counts.completedTasks / counts.totalTasks) * 100) 
-          : (proj.status === 'Completed' ? 100 : 0)
+        ...pJson,
+        totalTasks,
+        completedTasks,
+        progressPercent
       };
     });
 
@@ -94,7 +97,15 @@ class ProjectService {
    * Get single project by ID with authorization verification and populated tasks
    */
   async getProjectById(projectId, userId) {
-    const project = await Project.findById(projectId).lean();
+    const project = await Project.findByPk(projectId, {
+      include: [
+        {
+          model: Task,
+          as: 'tasks',
+          order: [['createdAt', 'DESC']]
+        }
+      ]
+    });
 
     if (!project) {
       const error = new Error('Project not found');
@@ -109,13 +120,7 @@ class ProjectService {
       throw error;
     }
 
-    // Retrieve associated tasks
-    const tasks = await Task.find({ projectId }).sort({ createdAt: -1 }).lean();
-
-    return {
-      ...project,
-      tasks
-    };
+    return project.toJSON();
   }
 
   /**
@@ -127,14 +132,14 @@ class ProjectService {
       userId
     });
 
-    return project;
+    return project.toJSON();
   }
 
   /**
    * Update an existing project verifying ownership
    */
   async updateProject(projectId, userId, updateData) {
-    const project = await Project.findById(projectId);
+    const project = await Project.findByPk(projectId);
 
     if (!project) {
       const error = new Error('Project not found');
@@ -142,7 +147,6 @@ class ProjectService {
       throw error;
     }
 
-    // Strict ownership verification
     if (project.userId.toString() !== userId.toString()) {
       const error = new Error('Unauthorized: You cannot edit another user\'s project');
       error.statusCode = 403;
@@ -157,14 +161,14 @@ class ProjectService {
     });
 
     await project.save();
-    return project;
+    return project.toJSON();
   }
 
   /**
    * Delete a project and cascade delete all associated tasks
    */
   async deleteProject(projectId, userId) {
-    const project = await Project.findById(projectId);
+    const project = await Project.findByPk(projectId);
 
     if (!project) {
       const error = new Error('Project not found');
@@ -172,22 +176,18 @@ class ProjectService {
       throw error;
     }
 
-    // Strict ownership verification
     if (project.userId.toString() !== userId.toString()) {
       const error = new Error('Unauthorized: You cannot delete another user\'s project');
       error.statusCode = 403;
       throw error;
     }
 
-    // Controlled cascade delete: Remove all tasks linked to this project
-    const deletedTasksResult = await Task.deleteMany({ projectId: project._id });
-
-    // Delete the project itself
-    await project.deleteOne();
+    const deletedTasksCount = await Task.destroy({ where: { projectId: project.id } });
+    await project.destroy();
 
     return {
       deletedProjectId: projectId,
-      deletedTasksCount: deletedTasksResult.deletedCount
+      deletedTasksCount
     };
   }
 }

@@ -10,7 +10,13 @@
     "seed": "node src/seeds/seedData.js",
     "test": "cross-env NODE_ENV=test jest --runInBand --detectOpenHandles --forceExit"
   },
-  "keywords": ["mern", "project-management", "express", "mongoose", "jwt"],
+  "keywords": [
+    "mern",
+    "project-management",
+    "express",
+    "mongoose",
+    "jwt"
+  ],
   "author": "",
   "license": "ISC",
   "dependencies": {
@@ -23,7 +29,10 @@
     "helmet": "^7.1.0",
     "jsonwebtoken": "^9.0.2",
     "mongoose": "^8.5.1",
-    "morgan": "^1.10.0"
+    "morgan": "^1.10.0",
+    "mysql2": "^3.24.4",
+    "sequelize": "^6.37.8",
+    "sqlite3": "^6.0.1"
   },
   "devDependencies": {
     "cross-env": "^7.0.3",
@@ -35,6 +44,8 @@
   "jest": {
     "testEnvironment": "node",
     "testTimeout": 60000,
-    "setupFilesAfterEnv": ["<rootDir>/tests/setup.js"]
+    "setupFilesAfterEnv": [
+      "<rootDir>/tests/setup.js"
+    ]
   }
 }

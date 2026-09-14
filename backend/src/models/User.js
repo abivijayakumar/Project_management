@@ -1,67 +1,81 @@
-const mongoose = require('mongoose');
+const { DataTypes } = require('sequelize');
 const bcrypt = require('bcryptjs');
+const { getSequelize } = require('../config/database');
 
-const userSchema = new mongoose.Schema(
-  {
-    fullName: {
-      type: String,
-      required: [true, 'Full name is required'],
-      trim: true,
-      minlength: [2, 'Full name must be at least 2 characters long'],
-      maxlength: [100, 'Full name cannot exceed 100 characters']
-    },
-    email: {
-      type: String,
-      required: [true, 'Email is required'],
-      unique: true,
-      trim: true,
-      lowercase: true,
-      match: [
-        /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
-        'Please provide a valid email address'
-      ]
-    },
-    password: {
-      type: String,
-      required: [true, 'Password is required'],
-      minlength: [6, 'Password must be at least 6 characters long'],
-      select: false // Excluded from normal queries by default
+const sequelize = getSequelize();
+
+const User = sequelize.define('User', {
+  id: {
+    type: DataTypes.INTEGER,
+    primaryKey: true,
+    autoIncrement: true
+  },
+  fullName: {
+    type: DataTypes.STRING(100),
+    allowNull: false,
+    validate: {
+      notEmpty: { msg: 'Full name is required' },
+      len: { args: [2, 100], msg: 'Full name must be between 2 and 100 characters' }
     }
   },
-  {
-    timestamps: true,
-    toJSON: {
-      transform: function (doc, ret) {
-        delete ret.password;
-        delete ret.__v;
-        return ret;
+  email: {
+    type: DataTypes.STRING(150),
+    allowNull: false,
+    unique: {
+      name: 'unique_user_email',
+      msg: 'A user with this email address already exists'
+    },
+    validate: {
+      isEmail: { msg: 'Please provide a valid email address' }
+    },
+    set(value) {
+      this.setDataValue('email', value ? value.trim().toLowerCase() : value);
+    }
+  },
+  password: {
+    type: DataTypes.STRING(255),
+    allowNull: false,
+    validate: {
+      len: { args: [6, 255], msg: 'Password must be at least 6 characters long' }
+    }
+  },
+  _id: {
+    type: DataTypes.VIRTUAL,
+    get() {
+      const id = this.getDataValue('id');
+      return id != null ? id.toString() : null;
+    }
+  }
+}, {
+  tableName: 'users',
+  timestamps: true,
+  hooks: {
+    beforeCreate: async (user) => {
+      if (user.password) {
+        const salt = await bcrypt.genSalt(10);
+        user.password = await bcrypt.hash(user.password, salt);
       }
     },
-    toObject: {
-      transform: function (doc, ret) {
-        delete ret.password;
-        delete ret.__v;
-        return ret;
+    beforeUpdate: async (user) => {
+      if (user.changed('password')) {
+        const salt = await bcrypt.genSalt(10);
+        user.password = await bcrypt.hash(user.password, salt);
       }
     }
   }
-);
-
-// Pre-save hook to hash password if modified
-userSchema.pre('save', async function (next) {
-  if (!this.isModified('password')) {
-    return next();
-  }
-  const salt = await bcrypt.genSalt(10);
-  this.password = await bcrypt.hash(this.password, salt);
-  next();
 });
 
-// Compare entered password with hashed password
-userSchema.methods.matchPassword = async function (enteredPassword) {
+// Instance method to check password
+User.prototype.matchPassword = async function (enteredPassword) {
   return bcrypt.compare(enteredPassword, this.password);
 };
 
-const User = mongoose.model('User', userSchema);
+// Safe JSON serialization (excludes password, includes _id for frontend compatibility)
+User.prototype.toJSON = function () {
+  const values = { ...this.get() };
+  delete values.password;
+  values._id = values.id != null ? values.id.toString() : null;
+  return values;
+};
 
 module.exports = User;

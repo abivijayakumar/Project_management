@@ -1,5 +1,5 @@
 const jwt = require('jsonwebtoken');
-const User = require('../models/User');
+const { User } = require('../models');
 
 /**
  * Middleware to authenticate requests using JWT Bearer token
@@ -16,7 +16,9 @@ const protect = async (req, res, next) => {
       const secret = process.env.JWT_SECRET || 'fallback_secret_for_development_only_123';
       const decoded = jwt.verify(token, secret);
 
-      const user = await User.findById(decoded.id).select('-password');
+      const user = await User.findByPk(decoded.id, {
+        attributes: { exclude: ['password'] }
+      });
 
       if (!user) {
         return res.status(401).json({

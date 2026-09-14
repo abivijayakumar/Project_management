@@ -1,63 +1,74 @@
-const mongoose = require('mongoose');
+const { DataTypes } = require('sequelize');
+const { getSequelize } = require('../config/database');
 
-const taskSchema = new mongoose.Schema(
-  {
-    projectId: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: 'Project',
-      required: [true, 'Project ID is required'],
-      index: true
-    },
-    name: {
-      type: String,
-      required: [true, 'Task name is required'],
-      trim: true,
-      maxlength: [150, 'Task name cannot exceed 150 characters']
-    },
-    description: {
-      type: String,
-      default: '',
-      trim: true,
-      maxlength: [2000, 'Description cannot exceed 2000 characters']
-    },
-    priority: {
-      type: String,
-      enum: {
-        values: ['Low', 'Medium', 'High'],
-        message: '{VALUE} is not a valid task priority'
-      },
-      default: 'Medium',
-      index: true
-    },
-    status: {
-      type: String,
-      enum: {
-        values: ['Pending', 'In Progress', 'Completed'],
-        message: '{VALUE} is not a valid task status'
-      },
-      default: 'Pending',
-      index: true
-    },
-    dueDate: {
-      type: Date
+const sequelize = getSequelize();
+
+const Task = sequelize.define('Task', {
+  id: {
+    type: DataTypes.INTEGER,
+    primaryKey: true,
+    autoIncrement: true
+  },
+  projectId: {
+    type: DataTypes.INTEGER,
+    allowNull: false,
+    references: {
+      model: 'projects',
+      key: 'id'
     }
   },
-  {
-    timestamps: true,
-    toJSON: {
-      transform: function (doc, ret) {
-        delete ret.__v;
-        return ret;
-      }
+  name: {
+    type: DataTypes.STRING(150),
+    allowNull: false,
+    validate: {
+      notEmpty: { msg: 'Task name is required' },
+      len: { args: [1, 150], msg: 'Task name cannot exceed 150 characters' }
+    }
+  },
+  description: {
+    type: DataTypes.TEXT,
+    defaultValue: ''
+  },
+  priority: {
+    type: DataTypes.ENUM('Low', 'Medium', 'High'),
+    defaultValue: 'Medium',
+    allowNull: false
+  },
+  status: {
+    type: DataTypes.ENUM('Pending', 'In Progress', 'Completed'),
+    defaultValue: 'Pending',
+    allowNull: false
+  },
+  dueDate: {
+    type: DataTypes.DATE,
+    allowNull: true
+  },
+  _id: {
+    type: DataTypes.VIRTUAL,
+    get() {
+      const id = this.getDataValue('id');
+      return id != null ? id.toString() : null;
     }
   }
-);
+}, {
+  tableName: 'tasks',
+  timestamps: true,
+  indexes: [
+    { fields: ['projectId', 'status'] },
+    { fields: ['projectId', 'priority'] },
+    { fields: ['projectId', 'dueDate'] }
+  ]
+});
 
-// Indexes for fast querying within a project and status/priority
-taskSchema.index({ projectId: 1, status: 1 });
-taskSchema.index({ projectId: 1, priority: 1 });
-taskSchema.index({ projectId: 1, dueDate: 1 });
-
-const Task = mongoose.model('Task', taskSchema);
+Task.prototype.toJSON = function () {
+  const values = { ...this.get() };
+  values._id = values.id != null ? values.id.toString() : null;
+  if (this.project) {
+    const projectJson = typeof this.project.toJSON === 'function' ? this.project.toJSON() : this.project;
+    values.projectId = projectJson;
+    values.project = projectJson;
+  }
+  return values;
+};
 
 module.exports = Task;
