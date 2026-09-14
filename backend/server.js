@@ -39,21 +39,6 @@ const startServer = async () => {
     }
   }
 
-  // Auto-seed in development if database is empty
-  if (process.env.NODE_ENV !== 'production') {
-    try {
-      const User = require('./src/models/User');
-      const count = await User.countDocuments();
-      if (count === 0) {
-        console.log('[MongoDB] Database is empty. Seeding initial demo projects and tasks...');
-        const { seedData } = require('./src/seeds/seedData');
-        await seedData();
-      }
-    } catch (seedErr) {
-      console.warn('[MongoDB] Auto-seed warning:', seedErr.message);
-    }
-  }
-
   const server = app.listen(PORT, () => {
     console.log(`[Server] Project Management API running in ${process.env.NODE_ENV || 'development'} mode on port ${PORT}`);
     console.log(`[Server] Health check: http://localhost:${PORT}/api/health`);

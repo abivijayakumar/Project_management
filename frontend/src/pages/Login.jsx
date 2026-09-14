@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { Layers, LogIn, AlertCircle, Sparkles, Eye, EyeOff } from 'lucide-react';
+import { Layers, LogIn, AlertCircle, Eye, EyeOff } from 'lucide-react';
 
 const Login = () => {
   const [formData, setFormData] = useState({ email: '', password: '' });
@@ -151,50 +151,6 @@ const Login = () => {
             <LogIn size={18} />
             <span>{isSubmitting ? 'Signing in...' : 'Sign In'}</span>
           </button>
-
-          <div style={{
-            marginTop: '1.25rem',
-            padding: '0.85rem 1rem',
-            borderRadius: 'var(--radius-md)',
-            background: 'rgba(99, 102, 241, 0.08)',
-            border: '1px dashed rgba(99, 102, 241, 0.3)'
-          }}>
-            <div style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              marginBottom: '0.5rem'
-            }}>
-              <span style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--primary-light)', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
-                <Sparkles size={14} /> Quick Demo Accounts
-              </span>
-              <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Click to autofill</span>
-            </div>
-            <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
-              <button
-                type="button"
-                className="btn btn-secondary btn-sm"
-                style={{ fontSize: '0.78rem', padding: '0.35rem 0.65rem' }}
-                onClick={() => {
-                  setFormData({ email: 'alex@pulse.dev', password: 'Password123!' });
-                  setFieldErrors({});
-                }}
-              >
-                👤 Alex (Workspace Owner)
-              </button>
-              <button
-                type="button"
-                className="btn btn-secondary btn-sm"
-                style={{ fontSize: '0.78rem', padding: '0.35rem 0.65rem' }}
-                onClick={() => {
-                  setFormData({ email: 'sarah@pulse.dev', password: 'Password123!' });
-                  setFieldErrors({});
-                }}
-              >
-                👤 Sarah (Multi-tenant User)
-              </button>
-            </div>
-          </div>
         </form>
 
         <div style={{
