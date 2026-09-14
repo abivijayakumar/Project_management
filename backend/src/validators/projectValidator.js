@@ -1,4 +1,6 @@
-const { body, param, query } = require('express-validator');
+const { body, param } = require('express-validator');
+
+const isValidId = (val) => !isNaN(val) && parseInt(val, 10) > 0;
 
 const createProjectValidator = [
   body('name')
@@ -31,7 +33,7 @@ const createProjectValidator = [
 
 const updateProjectValidator = [
   param('id')
-    .isMongoId().withMessage('Invalid project ID format'),
+    .custom(isValidId).withMessage('Invalid project ID format'),
   body('name')
     .optional()
     .trim()
@@ -63,7 +65,7 @@ const updateProjectValidator = [
 
 const projectIdParamValidator = [
   param('id')
-    .isMongoId().withMessage('Invalid project ID format')
+    .custom(isValidId).withMessage('Invalid project ID format')
 ];
 
 module.exports = {

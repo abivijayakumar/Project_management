@@ -1,8 +1,7 @@
 const path = require('path');
 require('dotenv').config({ path: path.join(__dirname, '../.env') });
 
-const { initDatabase, sequelize } = require('../src/config/database');
-const { User, Project, Task } = require('../src/models');
+const { initDatabase } = require('../src/config/database');
 
 async function inspect() {
   const DB_NAME = process.env.DB_NAME || 'project_management';
@@ -10,11 +9,13 @@ async function inspect() {
   const DB_PORT = process.env.DB_PORT || 3306;
 
   console.log('====================================================');
-  console.log('🔍 Pulse Database Inspector (MySQL / Relational)');
+  console.log('🔍 Pulse Database Inspector (Relational / SQL)');
   console.log(`📡 Connecting to: ${DB_NAME} at ${DB_HOST}:${DB_PORT}`);
   console.log('====================================================\n');
 
-  await initDatabase();
+  const sequelize = await initDatabase();
+  const { User, Project, Task } = require('../src/models');
+  await sequelize.sync();
 
   // 1. Users
   const users = await User.findAll({ order: [['id', 'ASC']] });

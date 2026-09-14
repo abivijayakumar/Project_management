@@ -1,9 +1,11 @@
-const { body, param, query } = require('express-validator');
+const { body, param } = require('express-validator');
+
+const isValidId = (val) => !isNaN(val) && parseInt(val, 10) > 0;
 
 const createTaskValidator = [
   body('projectId')
     .notEmpty().withMessage('Project ID is required')
-    .isMongoId().withMessage('Invalid project ID format'),
+    .custom(isValidId).withMessage('Invalid project ID format'),
   body('name')
     .trim()
     .notEmpty().withMessage('Task name is required')
@@ -27,7 +29,7 @@ const createTaskValidator = [
 
 const updateTaskValidator = [
   param('id')
-    .isMongoId().withMessage('Invalid task ID format'),
+    .custom(isValidId).withMessage('Invalid task ID format'),
   body('name')
     .optional()
     .trim()
@@ -52,7 +54,7 @@ const updateTaskValidator = [
 
 const taskIdParamValidator = [
   param('id')
-    .isMongoId().withMessage('Invalid task ID format')
+    .custom(isValidId).withMessage('Invalid task ID format')
 ];
 
 module.exports = {
