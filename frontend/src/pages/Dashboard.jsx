@@ -1,0 +1,293 @@
+import React, { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
+import { dashboardService } from '../services/dashboardService';
+import LoadingSpinner from '../components/LoadingSpinner';
+import StatusBadge from '../components/StatusBadge';
+import PriorityBadge from '../components/PriorityBadge';
+import {
+  FolderKanban,
+  CheckSquare,
+  Clock,
+  PlayCircle,
+  TrendingUp,
+  Plus,
+  ArrowRight,
+  FolderPlus
+} from 'lucide-react';
+import { formatDate } from '../utils/formatDate';
+
+const Dashboard = () => {
+  const [stats, setStats] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    const fetchStats = async () => {
+      try {
+        setLoading(true);
+        const res = await dashboardService.getStats();
+        setStats(res.data);
+      } catch (err) {
+        setError(err.response?.data?.message || 'Failed to load dashboard metrics');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchStats();
+  }, []);
+
+  if (loading) {
+    return <LoadingSpinner text="Aggregating workspace analytics..." size="large" />;
+  }
+
+  if (error) {
+    return (
+      <div className="alert-banner alert-danger">
+        <span>{error}</span>
+      </div>
+    );
+  }
+
+  const {
+    totalProjects = 0,
+    totalTasks = 0,
+    completedTasks = 0,
+    pendingTasks = 0,
+    projectsInProgress = 0,
+    recentProjects = [],
+    recentTasks = []
+  } = stats || {};
+
+  const taskCompletionRate = totalTasks > 0
+    ? Math.round((completedTasks / totalTasks) * 100)
+    : 0;
+
+  return (
+    <div>
+      {/* Header with greeting and actions */}
+      <div style={{
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        flexWrap: 'wrap',
+        gap: '1rem',
+        marginBottom: '2rem'
+      }}>
+        <div>
+          <h1 style={{ fontSize: '1.85rem' }}>Dashboard Overview</h1>
+          <p style={{ color: 'var(--text-secondary)', marginTop: '0.25rem' }}>
+            Real-time project tracking and performance telemetry
+          </p>
+        </div>
+
+        <div style={{ display: 'flex', gap: '0.75rem' }}>
+          <Link to="/projects/new" className="btn btn-primary">
+            <Plus size={18} />
+            <span>Create Project</span>
+          </Link>
+          <Link to="/tasks/new" className="btn btn-secondary">
+            <Plus size={18} />
+            <span>Add Task</span>
+          </Link>
+        </div>
+      </div>
+
+      {/* 5 Core Metric Cards */}
+      <div className="grid-stats">
+        <div className="stat-card">
+          <div>
+            <div className="stat-value">{totalProjects}</div>
+            <div className="stat-title">Total Projects</div>
+          </div>
+          <div className="stat-icon-wrapper" style={{ color: '#818cf8' }}>
+            <FolderKanban size={26} />
+          </div>
+        </div>
+
+        <div className="stat-card">
+          <div>
+            <div className="stat-value">{projectsInProgress}</div>
+            <div className="stat-title">Projects In Progress</div>
+          </div>
+          <div className="stat-icon-wrapper" style={{ color: '#fbbf24' }}>
+            <PlayCircle size={26} />
+          </div>
+        </div>
+
+        <div className="stat-card">
+          <div>
+            <div className="stat-value">{totalTasks}</div>
+            <div className="stat-title">Total Tasks</div>
+          </div>
+          <div className="stat-icon-wrapper" style={{ color: '#38bdf8' }}>
+            <CheckSquare size={26} />
+          </div>
+        </div>
+
+        <div className="stat-card">
+          <div>
+            <div className="stat-value" style={{ color: '#34d399' }}>{completedTasks}</div>
+            <div className="stat-title">Completed Tasks</div>
+          </div>
+          <div className="stat-icon-wrapper" style={{ color: '#34d399' }}>
+            <TrendingUp size={26} />
+          </div>
+        </div>
+
+        <div className="stat-card">
+          <div>
+            <div className="stat-value" style={{ color: '#cbd5e1' }}>{pendingTasks}</div>
+            <div className="stat-title">Pending Tasks</div>
+          </div>
+          <div className="stat-icon-wrapper" style={{ color: '#94a3b8' }}>
+            <Clock size={26} />
+          </div>
+        </div>
+      </div>
+
+      {/* Productivity Progress Section */}
+      <div className="card" style={{ marginBottom: '2rem' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
+          <h3 style={{ fontSize: '1.1rem' }}>Task Completion Rate</h3>
+          <span style={{ fontSize: '1.25rem', fontWeight: 700, color: '#818cf8' }}>
+            {taskCompletionRate}%
+          </span>
+        </div>
+        <div className="progress-bar-container" style={{ height: '12px' }}>
+          <div className="progress-bar-fill" style={{ width: `${taskCompletionRate}%` }} />
+        </div>
+        <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem', marginTop: '0.5rem' }}>
+          {completedTasks} of {totalTasks} total tasks completed across all projects
+        </p>
+      </div>
+
+      {/* Split Recent Section: Recent Projects & Recent Tasks */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '1.5rem' }}>
+        {/* Recent Projects Widget */}
+        <div className="card">
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            marginBottom: '1.25rem',
+            paddingBottom: '0.75rem',
+            borderBottom: '1px solid var(--border-subtle)'
+          }}>
+            <h3 style={{ fontSize: '1.15rem' }}>Recent Projects</h3>
+            <Link to="/projects" style={{ fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+              <span>View all</span>
+              <ArrowRight size={14} />
+            </Link>
+          </div>
+
+          {recentProjects.length === 0 ? (
+            <div style={{ textAlign: 'center', padding: '2rem 1rem', color: 'var(--text-muted)' }}>
+              <FolderPlus size={36} style={{ margin: '0 auto 0.75rem', opacity: 0.5 }} />
+              <p>No projects created yet.</p>
+              <Link to="/projects/new" className="btn btn-secondary btn-sm" style={{ marginTop: '0.75rem' }}>
+                Create First Project
+              </Link>
+            </div>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+              {recentProjects.map((p) => (
+                <div
+                  key={p._id}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    padding: '0.75rem 1rem',
+                    background: 'rgba(255, 255, 255, 0.02)',
+                    borderRadius: 'var(--radius-md)',
+                    border: '1px solid var(--border-subtle)'
+                  }}
+                >
+                  <div>
+                    <Link
+                      to={`/projects/${p._id}`}
+                      style={{ fontWeight: 600, color: 'var(--text-primary)', fontSize: '0.95rem' }}
+                    >
+                      {p.name}
+                    </Link>
+                    <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '0.15rem' }}>
+                      Created {formatDate(p.createdAt)}
+                    </div>
+                  </div>
+                  <StatusBadge status={p.status} />
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Recent Tasks Widget */}
+        <div className="card">
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            marginBottom: '1.25rem',
+            paddingBottom: '0.75rem',
+            borderBottom: '1px solid var(--border-subtle)'
+          }}>
+            <h3 style={{ fontSize: '1.15rem' }}>Recent Tasks</h3>
+            <Link to="/tasks" style={{ fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+              <span>View all</span>
+              <ArrowRight size={14} />
+            </Link>
+          </div>
+
+          {recentTasks.length === 0 ? (
+            <div style={{ textAlign: 'center', padding: '2rem 1rem', color: 'var(--text-muted)' }}>
+              <CheckSquare size={36} style={{ margin: '0 auto 0.75rem', opacity: 0.5 }} />
+              <p>No tasks created yet.</p>
+              <Link to="/tasks/new" className="btn btn-secondary btn-sm" style={{ marginTop: '0.75rem' }}>
+                Add First Task
+              </Link>
+            </div>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+              {recentTasks.map((t) => (
+                <div
+                  key={t._id}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    padding: '0.75rem 1rem',
+                    background: 'rgba(255, 255, 255, 0.02)',
+                    borderRadius: 'var(--radius-md)',
+                    border: '1px solid var(--border-subtle)'
+                  }}
+                >
+                  <div style={{ minWidth: 0, flex: 1, marginRight: '0.75rem' }}>
+                    <div style={{
+                      fontWeight: 600,
+                      fontSize: '0.95rem',
+                      whiteSpace: 'nowrap',
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis'
+                    }}>
+                      {t.name}
+                    </div>
+                    <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '0.15rem' }}>
+                      {t.projectId?.name || 'Project'} • Due {formatDate(t.dueDate)}
+                    </div>
+                  </div>
+                  <div style={{ display: 'flex', gap: '0.4rem', flexShrink: 0 }}>
+                    <StatusBadge status={t.status} />
+                    <PriorityBadge priority={t.priority} />
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default Dashboard;
