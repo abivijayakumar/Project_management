@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { Layers, UserPlus, AlertCircle } from 'lucide-react';
+import { Layers, UserPlus, AlertCircle, Eye, EyeOff } from 'lucide-react';
 
 const Register = () => {
   const [formData, setFormData] = useState({
@@ -11,6 +11,8 @@ const Register = () => {
     confirmPassword: ''
   });
   const [fieldErrors, setFieldErrors] = useState({});
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const { register, error, clearError, isAuthenticated } = useAuth();
@@ -138,16 +140,27 @@ const Register = () => {
             <label className="form-label" htmlFor="password">
               Password
             </label>
-            <input
-              id="password"
-              name="password"
-              type="password"
-              className="form-control"
-              placeholder="At least 6 characters"
-              value={formData.password}
-              onChange={handleChange}
-              autoComplete="new-password"
-            />
+            <div className="password-input-wrapper">
+              <input
+                id="password"
+                name="password"
+                type={showPassword ? 'text' : 'password'}
+                className="form-control"
+                placeholder="At least 6 characters"
+                value={formData.password}
+                onChange={handleChange}
+                autoComplete="new-password"
+              />
+              <button
+                type="button"
+                className="password-toggle-btn"
+                onClick={() => setShowPassword((prev) => !prev)}
+                aria-label={showPassword ? 'Hide password' : 'Show password'}
+                title={showPassword ? 'Hide password' : 'Show password'}
+              >
+                {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+              </button>
+            </div>
             {fieldErrors.password && <span className="form-error">{fieldErrors.password}</span>}
           </div>
 
@@ -155,16 +168,27 @@ const Register = () => {
             <label className="form-label" htmlFor="confirmPassword">
               Confirm Password
             </label>
-            <input
-              id="confirmPassword"
-              name="confirmPassword"
-              type="password"
-              className="form-control"
-              placeholder="Repeat your password"
-              value={formData.confirmPassword}
-              onChange={handleChange}
-              autoComplete="new-password"
-            />
+            <div className="password-input-wrapper">
+              <input
+                id="confirmPassword"
+                name="confirmPassword"
+                type={showConfirmPassword ? 'text' : 'password'}
+                className="form-control"
+                placeholder="Repeat your password"
+                value={formData.confirmPassword}
+                onChange={handleChange}
+                autoComplete="new-password"
+              />
+              <button
+                type="button"
+                className="password-toggle-btn"
+                onClick={() => setShowConfirmPassword((prev) => !prev)}
+                aria-label={showConfirmPassword ? 'Hide password' : 'Show password'}
+                title={showConfirmPassword ? 'Hide password' : 'Show password'}
+              >
+                {showConfirmPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+              </button>
+            </div>
             {fieldErrors.confirmPassword && (
               <span className="form-error">{fieldErrors.confirmPassword}</span>
             )}

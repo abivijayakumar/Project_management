@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { Layers, LogIn, AlertCircle, Sparkles } from 'lucide-react';
+import { Layers, LogIn, AlertCircle, Sparkles, Eye, EyeOff } from 'lucide-react';
 
 const Login = () => {
   const [formData, setFormData] = useState({ email: '', password: '' });
   const [fieldErrors, setFieldErrors] = useState({});
+  const [showPassword, setShowPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [sessionExpiredMsg, setSessionExpiredMsg] = useState(false);
 
@@ -117,16 +118,27 @@ const Login = () => {
             <label className="form-label" htmlFor="password">
               Password
             </label>
-            <input
-              id="password"
-              name="password"
-              type="password"
-              className="form-control"
-              placeholder="••••••••"
-              value={formData.password}
-              onChange={handleChange}
-              autoComplete="current-password"
-            />
+            <div className="password-input-wrapper">
+              <input
+                id="password"
+                name="password"
+                type={showPassword ? 'text' : 'password'}
+                className="form-control"
+                placeholder="••••••••"
+                value={formData.password}
+                onChange={handleChange}
+                autoComplete="current-password"
+              />
+              <button
+                type="button"
+                className="password-toggle-btn"
+                onClick={() => setShowPassword((prev) => !prev)}
+                aria-label={showPassword ? 'Hide password' : 'Show password'}
+                title={showPassword ? 'Hide password' : 'Show password'}
+              >
+                {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+              </button>
+            </div>
             {fieldErrors.password && <span className="form-error">{fieldErrors.password}</span>}
           </div>
 
